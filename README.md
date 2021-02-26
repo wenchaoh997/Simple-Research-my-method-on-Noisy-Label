@@ -1,1 +1,1 @@
-# -Simple-Research-my-method-on-Noisy-Label
+# Simple-Research-my-method-on-Noisy-Label
