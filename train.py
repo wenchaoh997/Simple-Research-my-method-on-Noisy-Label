@@ -11,7 +11,6 @@ import torch.utils.data as Data
 import torchvision
 from torch.autograd import Variable
 import numpy as np
-import struct
 import os
 import argparse
 
@@ -35,42 +34,32 @@ args.add_argument('--epochK', type=int, default=20)
 args.add_argument('--SEED', type=int, default=924)
 args = args.parse_args()
 
-# args = {
-#     'SEED': 924,
-#     'data': 'cifar10',
-#     'lr': 0.01,
-#     'NT': 'symmetry',
-#     'NR': 0.4,
-#     'FR': None,
-#     'batchSize': 64,
-# #     'batchSize': 512,
-#     'epochs': 200,
-#     'epochK': 30,
-# }
-
-print('[INFO] Set noisy type: {}, noisy rate: {}'.format(args['NT'], args['NR']))
+print('[INFO] Set noisy type: {}, noisy rate: {}'.format(args.NT, args.NR))
 
 # some info
-SEED = args['SEED']
-epochs = int(args['epochs'])
-epochK = int(args['epochK'])
-learningRate = float(args['lr'])
+SEED = args.SEED
+epochs = int(args.epochs)
+epochK = int(args.epochK)
+learningRate = float(args.lr)
 momentum = 0.6
-batchSize = int(args['batchSize'])
-noisyRate = float(args['NR'])
-N_type = args['NT']
-if args['FR'] == None:
-    print('[INFO] Set forget rate: {} equals to noisy rate'.format(args['NR']))
-    forgetRate = float(args['NR'])
+batchSize = int(args.batchSize)
+noisyRate = float(args.NR)
+N_type = args.NT
+if args.FR == None:
+    print('[INFO] Set forget rate: {} equals to noisy rate'.format(args.NR))
+    forgetRate = float(args.NR)
 else:
-    forgetRate = float(args['FR'])
+    forgetRate = float(args.FR)
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 if device != 'cuda':
     print('[NOTICE] Using CPU')
+else:
+    print("[NOTICE] Using CUDA")
 
+args.data = args.data.lower()
 inchannel = 3
-if args['data'] == 'MNIST':
+if args.data == 'MNIST':
     W_H = 8
     inchannel = 1
     outchannel = 10
@@ -87,7 +76,7 @@ if args['data'] == 'MNIST':
     test_data = torchvision.datasets.MNIST(root=filePath, train=False, \
         transform=transform, download=True)
 
-elif args['data'] == 'cifar10':
+elif args.data == 'cifar10':
     W_H = 32
     outchannel = 10
     transform = torchvision.transforms.Compose([
@@ -104,7 +93,7 @@ elif args['data'] == 'cifar10':
     test_data = torchvision.datasets.CIFAR10(root=filePath, train=False, \
         transform=transform, download=True)
 
-elif args['data'] == 'cifar100':
+elif args.data == 'cifar100':
     W_H = 32
     outchannel = 100
     transform = torchvision.transforms.Compose([
@@ -120,6 +109,9 @@ elif args['data'] == 'cifar100':
         transform=transform, download=True)
     test_data = torchvision.datasets.CIFAR100(root=filePath, train=False, \
         transform=transform, download=True)
+else:
+    AssertionError("Do not support {}".format(args.data))
+    exit()
 
 # noisy
 train_data, noisy_idx = noisyHelper(train_data, noisyRate, SEED=SEED, N_type=N_type)
@@ -167,11 +159,6 @@ def train(epoch):
             print('[TRAIN] Train Epoch: {} [{}/{}]\tLoss: {:.6f} {:.6f}'.format(\
                 epoch, (batch_idx+1) * len(data), len(train_loader.dataset),\
                 loss_1.item(), loss_2.item()))
-        
-#         for i in large_idx:
-#             index.append(i + batch_idx * 64)
-#     return index
-
 
 def test():
     model_2.eval()
@@ -203,22 +190,6 @@ for epoch in range(1, epochs):
     train(epoch)
     tmp = test()
     
-#     state = {
-#         'net_1':model_1.state_dict(), 
-#         'net_2':model_2.state_dict(),
-#         'opt_1':opt_1.state_dict(), 
-#         'opt_2':opt_2.state_dict(), 
-#         'epoch':epoch
-#     }
-#     dir = './coteaching_{}_NR{}_FR{}_SEED{}_type {}.pkl'.format(\
-#         args['data'], 100*noisyRate, 100*forgetRate, SEED, N_type)
-#     torch.save(state, dir)
-    
-#     checkpoint = torch.load(dir)
-#     model.load_state_dict(checkpoint['net'])
-#     optimizer.load_state_dict(checkpoint['optimizer'])
-#     start_epoch = checkpoint['epoch'] + 1
-    
     if epoch == 60:
         opt_1 = optim.SGD(model_1.parameters(), lr=learningRate*0.8, momentum=momentum, weight_decay=1e-5)
         opt_2 = optim.SGD(model_2.parameters(), lr=learningRate*0.8, momentum=momentum, weight_decay=1e-5)
@@ -231,6 +202,6 @@ for epoch in range(1, epochs):
     
     acc.append(tmp)
     np.save('./test_{}_NR{}_FR{}_SEED{}_type_{}.npy'.format(\
-        args['data'], 100*noisyRate, 100*forgetRate, SEED, N_type), acc)
+        args.data, 100*noisyRate, 100*forgetRate, SEED, N_type), acc)
 
-    print('Finished!!!')
+print('Finished!!!')

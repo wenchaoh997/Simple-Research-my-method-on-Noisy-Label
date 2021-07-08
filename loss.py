@@ -5,8 +5,11 @@ kl_loss_comput: KL divergence
 soft_predict: predict on large_loss set with data augmentation
 """
 
-import matplotlib.pyplot as plt
 from PIL import Image
+import numpy as np
+import torch
+import torch.nn.functional as F
+import torchvision
 
 # new co-teaching
 def new_coteaching(data, targets, model_1, model_2, forgetRate, epoch, init_epoch=5, alpha=0.6):
